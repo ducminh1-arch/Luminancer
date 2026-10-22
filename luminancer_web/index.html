@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>LumiSynth — Real-Time Analog Video Synthesizer</title>
+    <meta name="description" content="Professional real-time analog video synthesizer, light painting visual effects, recursive feedback vortex loops, and live performance recording in WebGL2." />
+    <meta name="theme-color" content="#090a10" />
+
+    <!-- Google Fonts: JetBrains Mono (Analog Display) & Outfit (Modern Minimalist) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Main Synthesizer Container -->
+      <div id="synth-chassis">
+        
+        <!-- Video & WebGL Canvas Viewport -->
+        <div id="viewport-container">
+          <canvas id="gl-canvas"></canvas>
+          <div class="crt-overlay"></div>
+          
+          <!-- Touch / Mouse Gesture Interaction Layer -->
+          <div id="gesture-overlay" title="Drag: Pan Trails | Scroll/Pinch: Zoom Halo | Shift+Drag: Rotate Spiral | Double Click: Reset"></div>
+          
+          <!-- TOP HEADER DECK -->
+          <header id="top-bar">
+            <div class="deck-tabs">
+              <button id="btn-src" class="synth-tab-btn" data-mode="src">
+                <span class="tab-label">Source</span>
+                <span id="label-src-val" class="tab-val">demo</span>
+              </button>
+              <button id="btn-chan" class="synth-tab-btn" data-mode="chan">
+                <span class="tab-label">Chan</span>
+                <span id="label-chan-val" class="tab-val">light</span>
+              </button>
+              <button id="btn-color" class="synth-tab-btn" data-mode="color">
+                <span class="tab-label">Color</span>
+                <span id="label-color-val" class="tab-val">pulse</span>
+              </button>
+              <button id="btn-blend" class="synth-tab-btn" data-mode="blend">
+                <span class="tab-label">Blend</span>
+                <span id="label-blend-val" class="tab-val">mix</span>
+              </button>
+            </div>
+
+            <div class="top-quick-actions">
+              <button id="btn-switch-cam" class="icon-btn" title="Switch Camera" style="display: none;">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8m0 4c0 4.418 3.582 8 8 8s8-3.582 8-8"/>
+                  <path d="M1 10h4V6m18 8h-4v4"/>
+                </svg>
+              </button>
+              <button id="btn-help" class="icon-btn" title="Synthesizer Guide">? help</button>
+              <button id="btn-fullscreen" class="icon-btn" title="Toggle Fullscreen">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          <!-- SIGNATURE LUMINANCER HUD ROW -->
+          <div id="hud-readout-row">
+            <div id="hud-left-group">
+              <!-- Concentric Nested Squares HUD Visualizer Box -->
+              <div id="hud-visualizer-box" title="Click to cycle Motion Presets: Halo Tunnel, Spiral Vortex, Black Hole, Neutral">
+                <canvas id="hud-canvas" width="46" height="46"></canvas>
+              </div>
+
+              <div id="hud-text-stack">
+                <div id="status-readout">light/pulse/mix/-</div>
+                <div id="motion-badge">HALO TUNNEL</div>
+              </div>
+            </div>
+
+            <!-- Active Recording Indicator -->
+            <div id="rec-status-badge" class="hidden">
+              <span class="rec-dot"></span>
+              <span id="rec-timer">00:00</span>
+            </div>
+          </div>
+
+          <!-- VIDEO IMPORT BAR (When video file is used) -->
+          <div id="video-transport-bar">
+            <label class="file-picker-label" title="Upload local video file (MP4, WebM)">
+              <span>📁 IMPORT VIDEO FILE</span>
+              <input type="file" id="video-file-input" accept="video/mp4,video/webm,video/quicktime" />
+            </label>
+            <button id="btn-mute" class="transport-btn" title="Toggle Mute">🔊</button>
+          </div>
+
+          <!-- BOTTOM ANALOG SYNTHESIZER CONTROLS DECK -->
+          <footer id="bottom-deck">
+            <!-- Continuous Dual Slider Bar (Matching Luminancer DECAY & THRESHOLD Bar) -->
+            <div class="slider-bar-chassis">
+              <div class="slider-item slider-decay">
+                <span class="slider-title">DECAY</span>
+                <input type="range" id="slider-decay" min="0.0" max="0.99" step="0.01" value="0.85" />
+              </div>
+
+              <div class="slider-item slider-threshold">
+                <span class="slider-title">THRESHOLD</span>
+                <input type="range" id="slider-threshold" min="0.0" max="1.0" step="0.01" value="0.50" />
+              </div>
+            </div>
+
+            <!-- Hardware Deck Actions Bar (Matching Luminancer Bottom Row) -->
+            <div class="deck-actions-bar">
+              <span id="aspect-ratio-label">16:9</span>
+
+              <div class="transport-controls-group">
+                <button id="btn-rewind" class="action-icon-btn" title="Rewind">|◀</button>
+                <button id="btn-cycle-motion" class="action-icon-btn" title="Cycle Motion Vortex">⤭</button>
+                <button id="btn-play-pause" class="action-icon-btn" title="Play/Pause">▶</button>
+              </div>
+
+              <!-- Iconic Luminancer Coral Record Button with Center Dot -->
+              <button id="btn-record" class="luminancer-rec-btn" title="Start/Stop Video Recording">
+                <span class="rec-dot-core"></span>
+              </button>
+
+              <!-- Save / Snapshot Button (Floppy Disk Icon) -->
+              <button id="btn-snapshot" class="action-icon-btn save-btn" title="Save Snapshot Photo">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M19 12v7H5v-7h14m0-2H5c-1.11 0-2 .9-2 2v7c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7c0-1.1-.9-2-2-2zm-6-8H5c-1.1 0-2 .9-2 2v3h14V4c0-1.1-.9-2-2-2h-2zm-1 3H6V3h6v2z"/>
+                </svg>
+              </button>
+            </div>
+          </footer>
+
+          <!-- Help Modal Dialog -->
+          <div id="help-modal" class="modal-backdrop hidden">
+            <div class="modal-card">
+              <div class="modal-header">
+                <h2>ANALOG SYNTH GUIDE</h2>
+                <button id="btn-close-help" class="modal-close">&times;</button>
+              </div>
+              <div class="modal-body">
+                <div class="help-section">
+                  <h3>GESTURE CONTROLS</h3>
+                  <div class="help-item"><span>Drag (1-Finger / Mouse)</span><span>Drift & offset feedback trails</span></div>
+                  <div class="help-item"><span>Scroll Wheel / Pinch</span><span>Zoom feedback loop (expand / suck)</span></div>
+                  <div class="help-item"><span>Shift + Drag / Rotate</span><span>Rotate 3D spiral vortex tunnel</span></div>
+                  <div class="help-item"><span>Double Click / Tap</span><span>Reset transforms to default halo</span></div>
+                </div>
+                <div class="help-section">
+                  <h3>HUD VISUALIZER BOX</h3>
+                  <p>Click the concentric rotating squares box on the top-left to cycle signature motion presets: <strong>HALO TUNNEL</strong> (skull rings), <strong>SPIRAL VORTEX</strong> (3D laser spiral), <strong>BLACK HOLE</strong>, and <strong>NEUTRAL</strong>.</p>
+                </div>
+                <div class="help-section">
+                  <h3>SOURCE MODES</h3>
+                  <div class="help-item"><span>DEMO</span><span>Built-in glowing skull & light wand test synth</span></div>
+                  <div class="help-item"><span>CAMERA</span><span>Live webcam video feed</span></div>
+                  <div class="help-item"><span>VIDEO</span><span>Import local video file to synthesize</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Toast Notification Banner -->
+          <div id="toast-banner" class="hidden"></div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden Video & Canvas Elements for Source Streams -->
+    <video id="source-video" playsinline webkit-playsinline loop muted style="display:none;"></video>
+    <canvas id="demo-source-canvas" width="640" height="480" style="display:none;"></canvas>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
